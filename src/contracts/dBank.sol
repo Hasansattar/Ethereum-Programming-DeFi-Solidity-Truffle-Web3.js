@@ -14,6 +14,7 @@ contract dBank {
 
     //add events
     event Deposit(address indexed user, uint256 etherAmount, uint256 timeStart);
+      event Withdraw(address indexed user, uint etherAmount, uint depositTime, uint interest);
 
     //pass as constructor argument deployed Token contract
     constructor(Token _token) public {
@@ -29,7 +30,7 @@ contract dBank {
         );
         //check if msg.value is >= than 0.01 ETH
         require(msg.value >= 1e16, "Error, deposit must be >=0.o1 ETH");
-
+ 
         //increase msg.sender ether deposit balance
         etherBalanceOf[msg.sender] = etherBalanceOf[msg.sender] + msg.value;
         //start msg.sender hodling time
@@ -42,18 +43,29 @@ contract dBank {
     }
 
     function withdraw() public {
-        //check if msg.sender deposit status is true
-        //assign msg.sender ether deposit balance to variable for event
-        //check user's hodl time
-        //calc interest per second
-        //calc accrued interest
-        //send eth to user
-        msg.sender.transfer(etherBalanceOf[msg.sender]);
-        //send interest in tokens to user
+        //check if msg.sender deposit status is true   6-
+         require(isDeposited[msg.sender] == true, 'Error, no previous deposit');
+        //assign msg.sender ether deposit balance to variable for event   6-
+         uint userBalance = etherBalanceOf[msg.sender];  //for event
+        //check user's hodl time 3-
+          uint depositTime   =block.timestamp - depositStart[msg.sender];
 
-        //reset depositer data
+        //calc interest per second 4-
+        uint interestPerSecond=31668017 * (etherBalanceOf[msg.sender] / 1e16);
+          //calc accrued interest  4-
+           uint interest =interestPerSecond * depositTime;
+
+        //send eth to user 1-
+        msg.sender.transfer(userBalance);
+        //send interest in tokens to user 5-
+        token.mint(msg.sender, interest);      
+         //reset depositer data 2-
         etherBalanceOf[msg.sender]=0;
+        etherBalanceOf[msg.sender]=0;      // 5-
+        isDeposited[msg.sender]=false;     //  5-
         //emit event
+
+        emit Withdraw(msg.sender, userBalance, depositTime, interest); //8-
     }
 
     function borrow() public payable {
